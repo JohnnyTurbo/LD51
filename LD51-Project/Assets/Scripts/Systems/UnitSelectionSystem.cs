@@ -12,11 +12,24 @@ namespace TMG.LD51
         private Camera _mainCamera;
         private PhysicsWorld _physicsWorld;
         private CollisionWorld _collisionWorld;
+        private CollisionFilter _unitsFilter;
+        private CollisionFilter _groundFilter;
         
         protected override void OnStartRunning()
         {
             _mainCamera = Camera.main;
             _physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>().PhysicsWorld;
+            _unitsFilter = new CollisionFilter
+            {
+                BelongsTo = (uint)CollisionLayers.Selection,
+                CollidesWith = (uint)CollisionLayers.Units
+            };
+            
+            _groundFilter = new CollisionFilter
+            {
+                BelongsTo = (uint)CollisionLayers.Selection,
+                CollidesWith = (uint)CollisionLayers.Ground
+            };
         }
 
         protected override void OnUpdate()
@@ -30,12 +43,16 @@ namespace TMG.LD51
                 
                 SelectSingleUnit();
             }
+
+            if (Input.GetMouseButtonUp(1))
+            {
+                SetTargetPosition();
+            }
         }
         
         private void SelectSingleUnit()
         {
-            Debug.Log("Selecting Single Unit");
-            _collisionWorld = _physicsWorld.CollisionWorld;
+            /*_collisionWorld = _physicsWorld.CollisionWorld;
 
             var ray = _mainCamera.ScreenPointToRay(Input.mousePosition);
             var rayStart = ray.origin;
@@ -44,30 +61,53 @@ namespace TMG.LD51
             if (Raycast(rayStart, rayEnd, out var raycastHit))
             {
                 var hitEntity = _physicsWorld.Bodies[raycastHit.RigidBodyIndex].Entity;
-                Debug.Log($"Raycast hit! {hitEntity.ToString()}");
                 if (EntityManager.HasComponent<SelectableUnitTag>(hitEntity))
                 {
                     EntityManager.AddComponent<SelectedEntityTag>(hitEntity);
-                    Debug.Log("adding component");
                 }
-            }
-            else
+            }*/
+            if (RaycastToMousePosition(_unitsFilter, out var raycastHit))
             {
-                Debug.Log("No hiit");
+                var hitEntity = _physicsWorld.Bodies[raycastHit.RigidBodyIndex].Entity;
+                if (EntityManager.HasComponent<SelectableUnitTag>(hitEntity))
+                {
+                    EntityManager.AddComponent<SelectedEntityTag>(hitEntity);
+                }
             }
         }
 
-        private bool Raycast(float3 rayStart, float3 rayEnd, out RaycastHit raycastHit)
+        private void SetTargetPosition()
+        {
+            Debug.Log("setting target posish");
+            if (RaycastToMousePosition(_groundFilter, out var raycastHit))
+            {
+                Debug.Log("hit the ground");
+                foreach (var drone in SystemAPI.Query<DroneAspect>().WithAll<SelectedEntityTag>())
+                {
+                    drone.TargetPosition = raycastHit.Position;
+                    Debug.Log($"set the posish to {raycastHit.Position} on {drone.Self.Index}");
+                }
+            }
+        }
+
+        private bool RaycastToMousePosition(CollisionFilter filter, out RaycastHit raycastHit)
+        {
+            _collisionWorld = _physicsWorld.CollisionWorld;
+
+            var ray = _mainCamera.ScreenPointToRay(Input.mousePosition);
+            var rayStart = ray.origin;
+            var rayEnd = ray.GetPoint(1000f);
+
+            return Raycast(rayStart, rayEnd, filter, out raycastHit);
+        }
+        
+        private bool Raycast(float3 rayStart, float3 rayEnd, CollisionFilter filter, out RaycastHit raycastHit)
         {
             var raycastInput = new RaycastInput
             {
                 Start = rayStart,
                 End = rayEnd,
-                Filter = new CollisionFilter
-                {
-                    BelongsTo = (uint) CollisionLayers.Selection,
-                    CollidesWith = (uint) (CollisionLayers.Ground | CollisionLayers.Units)
-                }
+                Filter = filter
             };
             return _collisionWorld.CastRay(raycastInput, out raycastHit);
         }
