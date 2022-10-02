@@ -1,6 +1,7 @@
 ﻿using Unity.Burst;
 using Unity.Entities;
 using Unity.Transforms;
+using UnityEngine;
 
 namespace TMG.LD51
 {
@@ -21,16 +22,15 @@ namespace TMG.LD51
         public void OnUpdate(ref SystemState state)
         {
             var deltaTime = SystemAPI.Time.DeltaTime;
-            foreach (var drone in SystemAPI.Query<DroneAspect>())
+            var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
+            foreach (var drone in SystemAPI.Query<DroneAspect>().WithAll<MoveToTargetTag>())
             {
-                drone.RotateTowardsTarget(deltaTime);
-                if(!drone.ShouldMoveToTarget) continue;
-                drone.Position += drone.Forward * drone.MoveSpeed * deltaTime;
+                drone.MoveToTargetPosition(deltaTime);
             }
         }
     }
     
-    public partial struct DroneMoveJob : IJobEntity
+    /*public partial struct DroneMoveJob : IJobEntity
     {
         public float DeltaTime;
         
@@ -38,5 +38,5 @@ namespace TMG.LD51
         {
             transform.Position += transform.Forward * moveSpeed.Value * DeltaTime;
         }
-    }
+    }*/
 }

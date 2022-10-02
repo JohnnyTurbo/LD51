@@ -7,6 +7,7 @@ namespace TMG.LD51
     {
         public void OnCreate(ref SystemState state)
         {
+            
         }
 
         public void OnDestroy(ref SystemState state)
@@ -17,13 +18,14 @@ namespace TMG.LD51
         {
             var ecb = SystemAPI.GetSingleton<BeginInitializationEntityCommandBufferSystem.Singleton>()
                 .CreateCommandBuffer(state.WorldUnmanaged);
-            var selectionPrefab = SystemAPI.GetSingleton<SelectionUIPrefab>().Value;
-            
-            new AddSelectionRingJob
+            if (SystemAPI.TryGetSingleton<SelectionUIPrefab>(out var selectionPrefab))
             {
-                ECB = ecb,
-                SelectionPrefab = selectionPrefab
-            }.Run();
+                new AddSelectionRingJob
+                {
+                    ECB = ecb,
+                    SelectionPrefab = selectionPrefab.Value
+                }.Run();
+            }
         }
     }
     
