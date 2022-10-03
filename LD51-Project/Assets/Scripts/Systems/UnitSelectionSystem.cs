@@ -10,6 +10,8 @@ namespace TMG.LD51
 {
     public partial class UnitSelectionSystem : SystemBase
     {
+        public float3 WorldMousePosition;
+        
         private Camera _mainCamera;
         private PhysicsWorldSingleton _physicsWorldSingleton;
         private CollisionWorld _collisionWorld;
@@ -45,9 +47,18 @@ namespace TMG.LD51
                 SelectSingleUnit();
             }
 
-            if (Input.GetMouseButtonUp(1))
+            else if (Input.GetMouseButtonUp(1))
             {
                 SetTargetPosition();
+            }
+
+            else
+            {
+                _physicsWorldSingleton = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
+                if (RaycastToMousePosition(_groundFilter, out var raycastHit))
+                {
+                    WorldMousePosition = raycastHit.Position;
+                }
             }
         }
         
@@ -95,6 +106,7 @@ namespace TMG.LD51
         private bool RaycastToMousePosition(CollisionFilter filter, out RaycastHit raycastHit)
         {
             var ray = _mainCamera.ScreenPointToRay(Input.mousePosition);
+            //WorldMousePosition = _mainCamera.ScreenToWorldPoint(Input.mousePosition);
             var rayStart = ray.origin;
             var rayEnd = ray.GetPoint(1000f);
 
